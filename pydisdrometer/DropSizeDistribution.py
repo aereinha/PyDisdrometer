@@ -21,6 +21,37 @@ class DropSizeDistribution(object):
     DropSizeDistribution class to hold DSD's and calculate parameters
     and relationships. Should be returned from the disdrometer*reader style
     functions.
+
+    Attributes
+    ----------
+        time: array_like
+            An array of times corresponding to the time each dsd was sampled.
+        Nd : 2d Array
+            A list of drop size distributions
+        spread: array_like
+            Array giving the bin spread size for each size bin of the
+            disdrometer.
+        rain_rate: array_like
+            Instantaneous rain rate from the disdrometer
+        velocity: array_like
+            Terminal Fall Velocity for each size bin. This is based on the
+            disdrometer assumptions.
+        Z: array_like
+            The equivalent reflectivity factory from the disdrometer. Often
+            taken as D**6.
+        num_particles: array_like
+            Number of measured particles for each time instant.
+        bin_edges: array_like
+            N+1 sized array of the boundaries of each size bin. For 30 bins
+            for instance, there will be 31 different bin boundaries.
+        diameter: array_like
+            The center size for each dsd bin.
+        Zh: array_like
+            Horizontal Reflectivity from T-Matrix scattering.
+        Zdr: array_like
+            Differential Reflectivity from T-Matrix scattering.
+
+
     '''
 
     def __init__(self, time, Nd, spread, rain_rate=None, velocity=None, Z=None,
@@ -36,6 +67,29 @@ class DropSizeDistribution(object):
             An array of times corresponding to the time each dsd was sampled.
         Nd : 2d Array
             A list of drop size distributions
+        spread: array_like
+            Array giving the bin spread size for each size bin of the
+            disdrometer.
+        rain_rate: optional, array_like
+            Instantaneous rain rate from the disdrometer
+        velocity: optional, array_like
+            Terminal Fall Velocity for each size bin. This is based on the
+            disdrometer assumptions.
+        Z: optional, array_like
+            The equivalent reflectivity factory from the disdrometer. Often
+            taken as D**6.
+        num_particles: optional, array_like
+            Number of measured particles for each time instant.
+        bin_edges: optional, array_like
+            N+1 sized array of the boundaries of each size bin. For 30 bins
+            for instance, there will be 31 different bin boundaries.
+        diameter: optional, array_like
+            The center size for each dsd bin.
+
+        Returns
+        -------
+        dsd: `DropSizeDistribution` instance
+            Drop Size Distribution instance.
 
         '''
 
