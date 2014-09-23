@@ -110,14 +110,16 @@ class DropSizeDistribution(object):
         self.Ai = np.zeros(lt)
 
     def calc_radar_parameters(self, wavelength=tmatrix_aux.wl_X):
-        '''
+        ''' Calculates radar parameters for the Drop Size Distribution.
+
         Calculates the radar parameters and stores them in the object.
         Defaults to X-Band,Beard and Chuang 10C setup.
 
         Sets object radar parameters:
             Zh, Zdr, Kdp, Ai
 
-        Parameter:
+        Parameters:
+        ----------
             wavelength = pytmatrix supported wavelength.
         '''
         self._setup_scattering(wavelength)
@@ -133,10 +135,17 @@ class DropSizeDistribution(object):
             self.Ai[t] = radar.Ai(self.scatterer)
 
     def _setup_scattering(self, wavelength):
-        '''
+        ''' Internal Function to create scattering tables.
+
         This internal function sets up the scattering table. It takes a
         wavelength as an argument where wavelength is one of the pytmatrix
         accepted wavelengths.
+
+        Parameters:
+        -----------
+            wavelength : tmatrix wavelength
+                PyTmatrix wavelength.
+
         '''
         self.scatterer = Scatterer(wavelength=wavelength,
                                    m=refractive.m_w_10C[wavelength])
@@ -151,13 +160,19 @@ class DropSizeDistribution(object):
         self.scatterer.psd_integrator.init_scatter_table(self.scatterer)
 
     def _calc_mth_moment(self, m):
-        '''
-        Calculates the mth moment of the drop size distribution.
+        '''Calculates the mth moment of the drop size distribution.
+
+        Returns the mth moment of the drop size distribution E[D^m].
+
+        Parameters:
+        -----------
+        m: float
+            order of the moment
         '''
 
         bin_width = [self.bin_edges[i + 1] - self.bin_edges[i]
                      for i in range(0, len(self.bin_edges) - 1)]
-        mth_moment = np.zeros(len(np.time))
+        mth_moment = np.zeros(len(self.time))
 
         for t in range(0, len(self.time)):
             dmth = np.power(self.diameter, m)
@@ -165,31 +180,35 @@ class DropSizeDistribution(object):
 
         return mth_moment
 
-#    def _calc_dsd_parameterization(self):
-#       '''Calculate a normalized gamma parameterization.
-#       This calculates the dsd parameterization. Variables are set on
-#       the object.
-#       Nt, W, D0, Nw
+    def calc_dsd_parameterization(self, method='bringi'):
+        '''Calculates DSD Parameterization.
 
-#       For D0 and Nw we use the method due to Bringi and Chandrasekar.
+        This calculates the dsd parameterization and sets them as fields. 
+        This includes the following parameters:
+        Nt, W, D0, Nw
 
-#       '''
+        For D0 and Nw we use the method due to Bringi and Chandrasekar.
 
-#       self.Nt = np.zeros(len(self.time))
-#       self.W = np.zeros(len(self.time))
-#       self.D0 = np.zeros(len(self.time))
-#       self.Nw = np.zeros(len(self.time))
-#       self.Dmax = np.zeros(len(self.time))
+        '''
 
-#       rho_w = 1  # Density of Water
-#       vol_constant = 10e-03 * np.pi/6.0 * rho_w *n
-#      for t in range(0,len(self.time)):
-#          self.Nt[t] = np.dot(self.spread,self.Nd[t])
-#          self.W[t] = vol_constant * np.dot(np.multiply(self.Nd[t],self.spread ),
-#              array(self.diameter)**3)
-#          self.D0[t] = self._calculate_D0(self.Nd[t])
-#self.Nw[t]=   (3.67**4)/pi * (10**3 * self.W[t])/(self.D0[t]**4) #?
-#          self.Dmax[t] =self.diameter[self.__get_last_nonzero(self.Nd[t])]
+        self.Nt = np.zeros(len(self.time))
+        self.W = np.zeros(len(self.time))
+        self.D0 = np.zeros(len(self.time))
+        self.Nw = np.zeros(len(self.time))
+        self.Dmax = np.zeros(len(self.time))
+        self.Dm = np.zeros(len(self.time))
+
+        rho_w = 1  # Density of Water
+        vol_constant = 10e-03 * np.pi/6.0 * rho_w 
+        self.Dm = np.divide(self._calc_mth_moment(4), self._calc_mth_moment(3))
+        for t in range(0,len(self.time)):
+            self.Nt[t] = np.dot(self.spread,self.Nd[t])
+            self.W[t] = vol_constant * np.dot(np.multiply(self.Nd[t],self.spread ),
+               array(self.diameter)**3)
+            self.D0[t] = self._calculate_D0(self.Nd[t])
+            # self.Nw[t]=   (3.67**4)/pi * (10**3 * self.W[t])/(self.D0[t]**4) #?
+            self.Nw[t] =  256.0/(np.pi*rho_w) * np.divide(self.W[t], self.Dm[t]**4)
+            self.Dmax[t] =self.diameter[self.__get_last_nonzero(self.Nd[t])]
 
     def __get_last_nonzero(self, N):
         ''' Gets last nonzero entry in an array
