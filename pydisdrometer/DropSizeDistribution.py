@@ -103,6 +103,7 @@ class DropSizeDistribution(object):
         self.num_particles = num_particles
         self.bin_edges = bin_edges
         self.diameter = diameter
+        self.fields = {}
 
         lt = len(time)
         self.Zh = np.zeros(lt)
@@ -110,7 +111,7 @@ class DropSizeDistribution(object):
         self.Kdp = np.zeros(lt)
         self.Ai = np.zeros(lt)
 
-    def calc_radar_parameters(self, wavelength=tmatrix_aux.wl_X):
+    def calculate_radar_parameters(self, wavelength=tmatrix_aux.wl_X):
         ''' Calculates radar parameters for the Drop Size Distribution.
 
         Calculates the radar parameters and stores them in the object.
@@ -124,16 +125,17 @@ class DropSizeDistribution(object):
             wavelength = pytmatrix supported wavelength.
         '''
         self._setup_scattering(wavelength)
+        self._setup_empty_fields()
 
         for t in range(0, len(self.time)):
             BinnedDSD = pytmatrix.psd.BinnedPSD(self.bin_edges,  self.Nd[t])
             self.scatterer.psd = BinnedDSD
             self.scatterer.set_geometry(tmatrix_aux.geom_horiz_back)
-            self.fields['Zh'][t] =10 * np.log10(radar.Zdr(self.scatterer))
-            self.fields['Zdr'][t] = 10 * np.log10(radar.refl(self.scatterer))
+            self.fields['Zh'][t] =10 * np.log10(radar.refl(self.scatterer))
+            self.fields['Zdr'][t] = 10 * np.log10(radar.Zdr(self.scatterer))
+            self.scatterer.set_geometry(tmatrix_aux.geom_horiz_forw)
             self.fields['Kdp'][t] = radar.Kdp(self.scatterer)
             self.fields['Ai'][t] = radar.Ai(self.scatterer)
-            self.scatterer.set_geometry(tmatrix_aux.geom_horiz_forw)
 
     def _setup_empty_fields(self):
         self.fields['Zh'] = np.zeros(len(self.time))
@@ -258,7 +260,7 @@ class DropSizeDistribution(object):
             self.fields['rain_rate'][t] = 0.6 * np.pi * 1e-03 * np.sum(self._mmultiply(
                 velocity, self.Nd[t], self.spread, np.array(self.diameter) ** 3))
 
-    def calc_R_kdp_relationship(self):
+    def calculate_R_Kdp_relationship(self):
         '''
         calc_R_kdp_relationship calculates a power fit for the rainfall-kdp
         relationship based upon the calculated radar parameters(which should
@@ -267,13 +269,17 @@ class DropSizeDistribution(object):
         gives the covariance matrix of the fit.
         '''
 
-        filt = np.logical_and(self.fields['Kdp'] > 0, self.fields['rain_rate'] > 0)
-        popt, pcov = expfit(self.fields['Kdp'][filt],
-                            self.fields['rain_rate'][filt])
+        if 'rain_rate' in self.fields.keys():
+            filt = np.logical_and(self.fields['Kdp'] > 0, self.fields['rain_rate'] > 0)
+            popt, pcov = expfit(self.fields['Kdp'][filt],
+                                self.fields['rain_rate'][filt])
 
-        return popt, pcov
+            return popt, pcov
+        else:
+            print("Please run calculate_RR() function first.")
+            return None
 
-    def calc_R_Zh_relationship(self):
+    def calculate_R_Zh_relationship(self):
         '''
         calc_R_Zh_relationship calculates the power law fit for Zh based
         upon scattered radar parameters. It returns the scale and exponential
@@ -282,10 +288,10 @@ class DropSizeDistribution(object):
         '''
 
         popt, pcov = expfit(np.power(10, 0.1 * self.fields['Zh'][self.rain_rate > 0]),
-                            self.fields['rain_rate'][self.rain_rate > 0])
+                            self.fields['rain_rate'][self.fields['rain_rate'] > 0])
         return popt, pcov
 
-    def calc_R_Zh_Zdr_relationship(self):
+    def calculate_R_Zh_Zdr_relationship(self):
         '''
         calc_R_Zh_Zdr_relationship calculates the power law fit for Zh,Zdr
         based upon scattered radar parameters. It returns the scale and
@@ -303,7 +309,7 @@ class DropSizeDistribution(object):
                              self.fields['rain_rate'][filt])
         return popt, pcov
 
-    def calc_R_Zh_Kdp_relationship(self):
+    def calculate_R_Zh_Kdp_relationship(self):
         '''
         calc_R_Zh_Kdp_relationship calculates the power law fit for Zh,Kdp
         based upon scattered radar parameters. It returns the scale and
@@ -321,7 +327,7 @@ class DropSizeDistribution(object):
                              self.fields['rain_rate'][filt])
         return popt, pcov
 
-    def calc_R_Zdr_Kdp_relationship(self):
+    def calculate_R_Zdr_Kdp_relationship(self):
         '''
         calc_R_Zdr_Kdp_relationship calculates the power law fit for Zdr,Kdp
         based upon scattered radar parameters. It returns the scale and
