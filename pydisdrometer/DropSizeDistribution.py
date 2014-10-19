@@ -26,6 +26,8 @@ class DropSizeDistribution(object):
     ----------
         time: array_like
             An array of times corresponding to the time each dsd was sampled.
+        fields: dictionary
+            Dictionary of scattered components.
         Nd : 2d Array
             A list of drop size distributions
         spread: array_like
@@ -92,7 +94,6 @@ class DropSizeDistribution(object):
             Drop Size Distribution instance.
 
         '''
-
         self.time = time
         self.Nd = Nd
         self.spread = spread
@@ -115,8 +116,8 @@ class DropSizeDistribution(object):
         Calculates the radar parameters and stores them in the object.
         Defaults to X-Band,Beard and Chuang 10C setup.
 
-        Sets object radar parameters:
-            Zh, Zdr, Kdp, Ai
+        Sets the dictionary parameters in fields dictionary:
+            Zh, Zdr, Kdp, Ai(Attenuation)
 
         Parameters:
         ----------
@@ -128,11 +129,20 @@ class DropSizeDistribution(object):
             BinnedDSD = pytmatrix.psd.BinnedPSD(self.bin_edges,  self.Nd[t])
             self.scatterer.psd = BinnedDSD
             self.scatterer.set_geometry(tmatrix_aux.geom_horiz_back)
-            self.Zdr[t] = 10 * np.log10(radar.Zdr(self.scatterer))
-            self.Zh[t] = 10 * np.log10(radar.refl(self.scatterer))
+            self.fields['Zh'][t] =10 * np.log10(radar.Zdr(self.scatterer))
+            self.fields['Zdr'][t] = 10 * np.log10(radar.refl(self.scatterer))
+            self.fields['Kdp'][t] = radar.Kdp(self.scatterer)
+            self.fields['Ai'][t] = radar.Ai(self.scatterer)
             self.scatterer.set_geometry(tmatrix_aux.geom_horiz_forw)
-            self.Kdp[t] = radar.Kdp(self.scatterer)
-            self.Ai[t] = radar.Ai(self.scatterer)
+
+    def _setup_empty_fields(self):
+        self.fields['Zh'] = np.zeros(len(self.time))
+        self.fields['Zdr'] = np.zeros(len(self.time))
+        self.fields['Kdp'] = np.zeros(len(self.time))
+        self.fields['Ai'] = np.zeros(len(self.time))
+
+
+
 
     def _setup_scattering(self, wavelength):
         ''' Internal Function to create scattering tables.
@@ -176,14 +186,14 @@ class DropSizeDistribution(object):
 
         for t in range(0, len(self.time)):
             dmth = np.power(self.diameter, m)
-            mth_moment[t] = np.multiply(np.multiply(dmth, self.Nd), bin_width)
+            mth_moment[t] = np.dot(np.multiply(dmth, self.Nd[t]), bin_width)
 
         return mth_moment
 
     def calc_dsd_parameterization(self, method='bringi'):
         '''Calculates DSD Parameterization.
 
-        This calculates the dsd parameterization and sets them as fields. 
+        This calculates the dsd parameterization and sets them as fields.
         This includes the following parameters:
         Nt, W, D0, Nw
 
@@ -191,24 +201,25 @@ class DropSizeDistribution(object):
 
         '''
 
-        self.Nt = np.zeros(len(self.time))
-        self.W = np.zeros(len(self.time))
-        self.D0 = np.zeros(len(self.time))
-        self.Nw = np.zeros(len(self.time))
-        self.Dmax = np.zeros(len(self.time))
-        self.Dm = np.zeros(len(self.time))
 
-        rho_w = 1  # Density of Water
-        vol_constant = 10e-03 * np.pi/6.0 * rho_w 
+        self.fields['Nt'] = np.zeros(len(self.time))
+        self.fields['W'] = np.zeros(len(self.time))
+        self.fields['D0'] = np.zeros(len(self.time))
+        self.fields['Nw'] = np.zeros(len(self.time))
+        self.fields['Dmax'] = np.zeros(len(self.time))
+        self.fields['Dm'] = np.zeros(len(self.time))
+
+        rho_w = 1000  # grams per meter cubed Density of Water
+        vol_constant = 10e-03 * np.pi/6.0 * rho_w
         self.Dm = np.divide(self._calc_mth_moment(4), self._calc_mth_moment(3))
         for t in range(0,len(self.time)):
-            self.Nt[t] = np.dot(self.spread,self.Nd[t])
-            self.W[t] = vol_constant * np.dot(np.multiply(self.Nd[t],self.spread ),
-               array(self.diameter)**3)
-            self.D0[t] = self._calculate_D0(self.Nd[t])
+            self.fields['Nt'][t] = np.dot(self.spread,self.Nd[t])
+            self.fields['W'][t] = vol_constant * np.dot(np.multiply(self.Nd[t],self.spread ),
+               np.array(self.diameter)**3)
+            self.fields['D0'][t] = self._calculate_D0(self.Nd[t])
             # self.Nw[t]=   (3.67**4)/pi * (10**3 * self.W[t])/(self.D0[t]**4) #?
-            self.Nw[t] =  256.0/(np.pi*rho_w) * np.divide(self.W[t], self.Dm[t]**4)
-            self.Dmax[t] =self.diameter[self.__get_last_nonzero(self.Nd[t])]
+            self.fields['Nw'][t] =  100*256.0/(np.pi*rho_w) * np.divide(self.W[t], self.Dm[t]**4)
+            #self.Dmax[t] =self.diameter[self.__get_last_nonzero(self.Nd[t])]
 
     def __get_last_nonzero(self, N):
         ''' Gets last nonzero entry in an array
@@ -238,13 +249,13 @@ class DropSizeDistribution(object):
         return self.diameter[cross_pt]+run
 
     def calculate_RR(self):
-        self.rain_rate = np.zeros(len(self.time))
+        self.fields['rain_rate'] = np.zeros(len(self.time))
         for t in range(0, len(self.time)):
             # self.rain_rate[t] = 0.6*3.1415 * 10**(-3) * np.dot(np.multiply(self.velocity,np.multiply(self.Nd[t],self.spread )),
             #    np.array(self.diameter)**3)
             velocity = 9.65 - 10.3 * np.exp(-0.6 * self.diameter)
             velocity[0] = 0.5
-            self.rain_rate[t] = 0.6 * np.pi * 1e-03 * np.sum(self._mmultiply(
+            self.fields['rain_rate'][t] = 0.6 * np.pi * 1e-03 * np.sum(self._mmultiply(
                 velocity, self.Nd[t], self.spread, np.array(self.diameter) ** 3))
 
     def calc_R_kdp_relationship(self):
@@ -256,9 +267,9 @@ class DropSizeDistribution(object):
         gives the covariance matrix of the fit.
         '''
 
-        filt = np.logical_and(self.Kdp > 0, self.rain_rate > 0)
-        popt, pcov = expfit(self.Kdp[filt],
-                            self.rain_rate[filt])
+        filt = np.logical_and(self.fields['Kdp'] > 0, self.fields['rain_rate'] > 0)
+        popt, pcov = expfit(self.fields['Kdp'][filt],
+                            self.fields['rain_rate'][filt])
 
         return popt, pcov
 
@@ -270,8 +281,8 @@ class DropSizeDistribution(object):
         gives the covariance matrix of the fit.
         '''
 
-        popt, pcov = expfit(np.power(10, 0.1 * self.Zh[self.rain_rate > 0]),
-                            self.rain_rate[self.rain_rate > 0])
+        popt, pcov = expfit(np.power(10, 0.1 * self.fields['Zh'][self.rain_rate > 0]),
+                            self.fields['rain_rate'][self.rain_rate > 0])
         return popt, pcov
 
     def calc_R_Zh_Zdr_relationship(self):
@@ -286,10 +297,10 @@ class DropSizeDistribution(object):
         Kdp > 0
         '''
         filt = np.logical_and(
-            np.logical_and(self.rain_rate > 0, np.greater(self.Zdr, 0)), self.Kdp > 0)
-        popt, pcov = expfit2([self._idb(self.Zh[filt]),
-                              self._idb(self.Zdr[filt])],
-                             self.rain_rate[filt])
+            np.logical_and(self.fields['rain_rate'] > 0, np.greater(self.fields['Zdr'], 0)), self.fields['Kdp'] > 0)
+        popt, pcov = expfit2([self._idb(self.fields['Zh'][filt]),
+                              self._idb(self.fields['Zdr'][filt])],
+                             self.fields['rain_rate'][filt])
         return popt, pcov
 
     def calc_R_Zh_Kdp_relationship(self):
@@ -304,10 +315,10 @@ class DropSizeDistribution(object):
        '''
 
         filt = np.logical_and(
-            np.logical_and(self.rain_rate > 0, self.Zdr > 0), self.Kdp > 0)
-        popt, pcov = expfit2([self._idb(self.Zh[filt]),
-                              self.Kdp[filt]],
-                             self.rain_rate[filt])
+            np.logical_and(self.fields['rain_rate'] > 0, self.fields['Zdr'] > 0), self.fields['Kdp'] > 0)
+        popt, pcov = expfit2([self._idb(self.fields['Zh'][filt]),
+                              self.fields['Kdp'][filt]],
+                             self.fields['rain_rate'][filt])
         return popt, pcov
 
     def calc_R_Zdr_Kdp_relationship(self):
@@ -321,11 +332,11 @@ class DropSizeDistribution(object):
         Kdp > 0
       '''
 
-        filt = np.logical_and(np.logical_and(self.rain_rate > 0, self.Zdr > 0),
-                              self.Kdp > 0)
-        popt, pcov = expfit2([self._idb(self.Zdr[filt]),
-                              self.Kdp[filt]],
-                             self.rain_rate[filt])
+        filt = np.logical_and(np.logical_and(self.fields['rain_rate'] > 0, self.fields['Zdr'] > 0),
+                              self.fields['Kdp'] > 0)
+        popt, pcov = expfit2([self._idb(self.fields['Zdr'][filt]),
+                              self.fields['Kdp'][filt]],
+                             self.fields['rain_rate'][filt])
         return popt, pcov
 
     def _idb(self, db):
