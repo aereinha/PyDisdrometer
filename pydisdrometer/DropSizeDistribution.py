@@ -53,7 +53,7 @@ class DropSizeDistribution(object):
     '''
 
     def __init__(self, time, Nd, spread, rain_rate=None, velocity=None, Z=None,
-                 num_particles=None, bin_edges=None, diameter=None, time_start = None):
+                 num_particles=None, bin_edges=None, diameter=None, time_start = None, location=None):
         '''Initializer for the dropsizedistribution class.
 
         The DropSizeDistribution class holds dsd's returned from the various
@@ -83,6 +83,8 @@ class DropSizeDistribution(object):
             The center size for each dsd bin.
         time_start: datetime
             Recording Start time.
+        location: tuple
+            (Latitude, Longitude) pair in decimal format. 
 
         Returns
         -------
@@ -108,6 +110,12 @@ class DropSizeDistribution(object):
         self.Zdr = np.zeros(lt)
         self.Kdp = np.zeros(lt)
         self.Ai = np.zeros(lt)
+
+        location = {}
+
+        if location:
+            self.location = {'latitude:' location[0], 'longitude': location[1]}
+
 
     def calculate_radar_parameters(self, wavelength=tmatrix_aux.wl_X):
         ''' Calculates radar parameters for the Drop Size Distribution.
