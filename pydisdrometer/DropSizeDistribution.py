@@ -11,7 +11,8 @@ import pytmatrix
 from pytmatrix.tmatrix import Scatterer
 from pytmatrix.psd import PSDIntegrator
 from pytmatrix import orientation, radar, tmatrix_aux, refractive
-import DSR
+from . import DSR
+from datetime import date
 from expfit import expfit, expfit2
 from scipy.optimize import curve_fit
 
@@ -26,7 +27,7 @@ class DropSizeDistribution(object):
     Attributes
     ----------
         time: array_like
-            An array of times corresponding to the time each dsd was sampled.
+            An array of times corresponding to the time each dsd was sampled in minutes relative to time_start.
         time_start: datetime
             A datetime object indicated start of disdrometer recording.
         fields: dictionary
@@ -52,7 +53,7 @@ class DropSizeDistribution(object):
     '''
 
     def __init__(self, time, Nd, spread, rain_rate=None, velocity=None, Z=None,
-                 num_particles=None, bin_edges=None, diameter=None):
+                 num_particles=None, bin_edges=None, diameter=None, time_start = None):
         '''Initializer for the dropsizedistribution class.
 
         The DropSizeDistribution class holds dsd's returned from the various
@@ -61,7 +62,7 @@ class DropSizeDistribution(object):
         Parameters
         ----------
         time: array_like
-            An array of times corresponding to the time each dsd was sampled.
+            An array of times corresponding to the time each dsd was sampled in minutes relative to time_start.
         Nd : 2d Array
             A list of drop size distributions
         spread: array_like
@@ -80,6 +81,8 @@ class DropSizeDistribution(object):
             for instance, there will be 31 different bin boundaries.
         diameter: optional, array_like
             The center size for each dsd bin.
+        time_start: datetime
+            Recording Start time.
 
         Returns
         -------
@@ -98,6 +101,7 @@ class DropSizeDistribution(object):
         self.bin_edges = bin_edges
         self.diameter = diameter
         self.fields = {}
+        self.time_start = time_start
 
         lt = len(time)
         self.Zh = np.zeros(lt)
