@@ -184,7 +184,7 @@ class DropSizeDistribution(object):
 
         return mth_moment
 
-    def calc_dsd_parameterization(self, method='bringi'):
+    def calculate_dsd_parameterization(self, method='bringi'):
         '''Calculates DSD Parameterization.
 
         This calculates the dsd parameterization and sets them as fields.
@@ -242,7 +242,7 @@ class DropSizeDistribution(object):
         return self.diameter[cross_pt]+run
 
     def calculate_RR(self):
-        self.fields['rain_rate'] = np.zeros(len(self.time))
+        self.fields['rain_rate'] = {'data': np.zeros(len(self.time))}
         for t in range(0, len(self.time)):
             # self.rain_rate[t] = 0.6*3.1415 * 10**(-3) * np.dot(np.multiply(self.velocity,np.multiply(self.Nd[t],self.spread )),
             #    np.array(self.diameter)**3)
@@ -253,7 +253,7 @@ class DropSizeDistribution(object):
 
     def calculate_R_Kdp_relationship(self):
         '''
-        calc_R_kdp_relationship calculates a power fit for the rainfall-kdp
+        calculate_R_kdp_relationship calculates a power fit for the rainfall-kdp
         relationship based upon the calculated radar parameters(which should
         have already been run). It returns the scale and exponential
         parameter a and b in the first tuple, and the second returned argument
@@ -261,9 +261,9 @@ class DropSizeDistribution(object):
         '''
 
         if 'rain_rate' in self.fields.keys():
-            filt = np.logical_and(self.fields['Kdp'] > 0, self.fields['rain_rate'] > 0)
-            popt, pcov = expfit(self.fields['Kdp'][filt],
-                                self.fields['rain_rate'][filt])
+            filt = np.logical_and(self.fields['Kdp']['data'] > 0, self.fields['rain_rate']['data'] > 0)
+            popt, pcov = expfit(self.fields['Kdp']['data'][filt],
+                                self.fields['rain_rate']['data'][filt])
 
             return popt, pcov
         else:
@@ -272,7 +272,7 @@ class DropSizeDistribution(object):
 
     def calculate_R_Zh_relationship(self):
         '''
-        calc_R_Zh_relationship calculates the power law fit for Zh based
+        calculate_R_Zh_relationship calculates the power law fit for Zh based
         upon scattered radar parameters. It returns the scale and exponential
         parameter a and b in the first tuple, and the second returned argument
         gives the covariance matrix of the fit.
@@ -284,7 +284,7 @@ class DropSizeDistribution(object):
 
     def calculate_R_Zh_Zdr_relationship(self):
         '''
-        calc_R_Zh_Zdr_relationship calculates the power law fit for Zh,Zdr
+        calculate_R_Zh_Zdr_relationship calculates the power law fit for Zh,Zdr
         based upon scattered radar parameters. It returns the scale and
         exponential parameters a, b, and c in the first tuple, and the
         second returned argument gives the covariance matrix of the fit.
@@ -302,7 +302,7 @@ class DropSizeDistribution(object):
 
     def calculate_R_Zh_Kdp_relationship(self):
         '''
-        calc_R_Zh_Kdp_relationship calculates the power law fit for Zh,Kdp
+        calculate_R_Zh_Kdp_relationship calculates the power law fit for Zh,Kdp
         based upon scattered radar parameters. It returns the scale and
         exponential parameters a, b, and c in the first tuple, and the
         second returned argument gives the covariance matrix of the fit.
@@ -320,7 +320,7 @@ class DropSizeDistribution(object):
 
     def calculate_R_Zdr_Kdp_relationship(self):
         '''
-        calc_R_Zdr_Kdp_relationship calculates the power law fit for Zdr,Kdp
+        calculate_R_Zdr_Kdp_relationship calculates the power law fit for Zdr,Kdp
         based upon scattered radar parameters. It returns the scale and
         exponential parameters a, b, and c in the first tuple, and the
         second returned argument gives the covariance matrix of the fit.
@@ -331,8 +331,9 @@ class DropSizeDistribution(object):
 
         filt = np.logical_and(np.logical_and(self.fields['rain_rate']['data'] > 0, self.fields['Zdr']['data'] > 0),
                               self.fields['Kdp']['data'] > 0)
+
         popt, pcov = expfit2([self._idb(self.fields['Zdr']['data'][filt]),
-                              self.fields['Kdp']['data'[filt]],
+                              self.fields['Kdp']['data'][filt]],
                              self.fields['rain_rate']['data'][filt])
         return popt, pcov
 
