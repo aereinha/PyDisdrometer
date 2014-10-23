@@ -84,7 +84,7 @@ class DropSizeDistribution(object):
         time_start: datetime
             Recording Start time.
         location: tuple
-            (Latitude, Longitude) pair in decimal format. 
+            (Latitude, Longitude) pair in decimal format.
 
         Returns
         -------
@@ -114,7 +114,7 @@ class DropSizeDistribution(object):
         location = {}
 
         if location:
-            self.location = {'latitude:' location[0], 'longitude': location[1]}
+            self.location = {'latitude': location[0], 'longitude': location[1]}
 
 
     def calculate_radar_parameters(self, wavelength=tmatrix_aux.wl_X):
@@ -214,17 +214,18 @@ class DropSizeDistribution(object):
         self.fields['Nw'] = {'data': np.zeros(len(self.time))}
         self.fields['Dmax'] = {'data': np.zeros(len(self.time))}
         self.fields['Dm'] = {'data': np.zeros(len(self.time))}
+        self.fields['Nw'] = {'data': np.zeros(len(self.time))}
 
         rho_w = 1000  # grams per meter cubed Density of Water
         vol_constant = 10e-03 * np.pi / 6.0 * rho_w
-        self.Dm = np.divide(self._calc_mth_moment(4), self._calc_mth_moment(3))
+        self.fields['Dm']['data'] = np.divide(self._calc_mth_moment(4), self._calc_mth_moment(3))
         for t in range(0, len(self.time)):
             self.fields['Nt']['data'][t] = np.dot(self.spread, self.Nd[t])
             self.fields['W']['data'][t] = vol_constant * np.dot(np.multiply(self.Nd[t], self.spread),
                                                                 np.array(self.diameter) ** 3)
             self.fields['D0']['data'][t] = self._calculate_D0(self.Nd[t])
             self.fields['Nw']['data'][t] = 100 * 256.0 / \
-                (np.pi * rho_w) * np.divide(self.W[t], self.Dm[t] ** 4)
+                (np.pi * rho_w) * np.divide(self.fields['W']['data'][t], self.fields['Dm']['data'][t] ** 4)
             #self.Dmax[t] =self.diameter[self.__get_last_nonzero(self.Nd[t])]
 
     def __get_last_nonzero(self, N):
