@@ -106,11 +106,6 @@ class DropSizeDistribution(object):
         self.time_start = time_start
 
         lt = len(time)
-        self.Zh = np.zeros(lt)
-        self.Zdr = np.zeros(lt)
-        self.Kdp = np.zeros(lt)
-        self.Ai = np.zeros(lt)
-
         location = {}
 
         if location:
@@ -227,10 +222,8 @@ class DropSizeDistribution(object):
             self.fields['Nw']['data'][t] = 100 * 256.0 / \
                 (np.pi * rho_w) * np.divide(self.fields['W']['data'][t], self.fields['Dm']['data'][t] ** 4)
             #self.Dmax[t] =self.diameter[self.__get_last_nonzero(self.Nd[t])]
-
-    def __get_last_nonzero(self, N):
-        ''' Gets last nonzero entry in an array.
-        Gets last non-zero entry in an array.
+i
+    def __get_last_nonzero(self, N): ''' Gets last nonzero entry in an array. Gets last non-zero entry in an array.
 
         Parameters
         ----------
@@ -240,7 +233,7 @@ class DropSizeDistribution(object):
         Returns
         -------
         max: int
-            last nonzero entry in an array.
+            last nonzero entry iPwRIn an array.
         '''
 
         return np.max(N.nonzero())
