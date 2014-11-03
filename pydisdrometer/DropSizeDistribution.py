@@ -222,7 +222,7 @@ class DropSizeDistribution(object):
             self.fields['Nw']['data'][t] = 100 * 256.0 / \
                 (np.pi * rho_w) * np.divide(self.fields['W']['data'][t], self.fields['Dm']['data'][t] ** 4)
             #self.Dmax[t] =self.diameter[self.__get_last_nonzero(self.Nd[t])]
-i
+
     def __get_last_nonzero(self, N): ''' Gets last nonzero entry in an array. Gets last non-zero entry in an array.
 
         Parameters
